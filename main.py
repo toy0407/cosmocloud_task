@@ -58,7 +58,16 @@ async def list_orders(page: int = 0, limit: int = 3):
     return orders
 
 
-
+"""
+Task 4: API to fetch a single order by Order ID
+GET /orders/{order_id}
+"""
+@app.get("/orders/{order_id}")
+async def get_order(order_id: str):
+    order = orders_collection.find_one({"order_id": order_id},{"_id":False})
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
 
 
 
