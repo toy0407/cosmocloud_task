@@ -1,9 +1,8 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, Query, Request
 from pymongo import MongoClient
-from models.product import Product
-from models.order import Order, OrderItem, UserAddress
+from models.order import Order
 
 app = FastAPI()
 
@@ -20,7 +19,7 @@ GET /products
 """
 @app.get("/products")
 async def list_products():
-    products = list(products_collection.find({},{"_id": False})) 
+    products = list(products_collection.find({},{"_id": False})) # Getting all available products as list
     return products
 
 
@@ -31,17 +30,18 @@ POST /orders
 """
 @app.post("/orders")
 async def create_order(order: Order):
+    # Calculating the total order value
+    total_amount = get_total_amount(order) 
 
     order_data = order.dict()
     order_data['order_id'] = uuid.uuid4().hex[:8]
-    order_data['timestamp'] = datetime.now()
-    order_data['total_amount'] = get_total_amount()
+    order_data['timestamp'] = datetime.now() 
+    order_data['total_amount'] = total_amount
 
-    # print(order_data)
-
-
+    # Adding the order into the Orders database
     orders_collection.insert_one(order_data)
-    return {"message": "Order created successfully"}
+
+    return {"message": "Order placed successfully"}
 
 
 
@@ -97,61 +97,25 @@ async def update_product_quantity(product_id: str, request: Request):
 
 
 
+# Helper functions
 
+# Calculate the total amount for all items in the Order
+def get_total_amount(order: Order):
 
+    sum = 0 # Calculate the total amount
 
+    for item in order.items:
+        product = products_collection.find_one({"product_id":item.product_id})
+        available_quantity = product["available_quantity"]
+        if(product is not None):
+            if(item.bought_quantity<=available_quantity):
+                # If buying quantity <= available quantity, purchase all items and update available quantity
+                sum = sum + item.bought_quantity*product["price"]
+                products_collection.update_one({"product_id": item.product_id},{"$set": {"available_quantity": available_quantity-item.bought_quantity}})
+            else:
+                # If buying quantity > available quantity, buy the whole stock and set available quantity to 0
+                sum = sum + available_quantity*product["price"]
+                products_collection.update_one({"product_id": item.product_id},{"$set": {"available_quantity": 0}})
+                item.bought_quantity = available_quantity
+    return sum
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def get_total_amount():
-    return 100
-    # pipeline = [
-    #     {
-    #         "$lookup": {
-    #             "from": "Product",  # Name of the product collection
-    #             "localField": "product_id",
-    #             "foreignField": "product_id",
-    #             "as": "product_data"
-    #         }
-    #     },
-    #     {
-    #         "$unwind": "$product_data"
-    #     },
-    #     {
-    #         "$project": {
-    #             "amount": {
-    #                 "$multiply": [
-    #                     {
-    #                         "$min": ["$bought_quantity", "$product_data.available_quantity"]
-    #                     },
-    #                     "$product_data.price"
-    #                 ]
-    #             }
-    #         }
-    #     },
-    #     {
-    #         "$group": {
-    #             "_id": None,
-    #             "total_amount": {
-    #                 "$sum": "$amount"
-    #             }
-    #         }
-    #     }
-    # ]
-
-    # result = db.OrderItem.aggregate(pipeline)
-
-    # for doc in result:
-    #     print(doc)
