@@ -42,3 +42,25 @@ This is a simple e-commerce application.
 
     Request Type: PUT
     URL: http://localhost:8000/products/{product_id}
+
+# Model Structure
+
+    Product
+    |----- product_id: string
+    |----- name: string
+    |----- price: float
+    |----- available_quantity: integer
+
+    Order
+    |----- order_id: string
+    |----- timestamp: datetime
+    |----- total_amount: float
+    |----- items: List[OrderItem]
+    |----- user_address: UserAddress
+                         |----- city: string
+                         |----- country: string
+                         |----- zip_code: string
+
+    OrderItem
+    |----- product_id: string
+    |----- bought_quantity: integer
