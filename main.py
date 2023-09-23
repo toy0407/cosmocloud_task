@@ -58,6 +58,7 @@ async def list_orders(page: int = 0, limit: int = 3):
     return orders
 
 
+
 """
 Task 4: API to fetch a single order by Order ID
 GET /orders/{order_id}
@@ -68,6 +69,27 @@ async def get_order(order_id: str):
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
+
+
+
+"""
+Task 5: API to update a product
+PUT /products/{product_id}
+"""
+@app.put("/products/{product_id}")
+async def update_product_quantity(product_id: str, request: Request):
+    json_body = await request.json()
+    available_quantity = json_body['available_quantity']
+    
+    if available_quantity is not None:
+        products_collection.update_one(
+            {"product_id": product_id},
+            {"$set": {"available_quantity": available_quantity}}
+        )
+        return {"message": "Product quantity updated successfully"}
+    else:
+        raise HTTPException(status_code=400, detail="Quantity not provided in request body")
+
 
 
 
